@@ -1,0 +1,30 @@
+# Core dependencies (essenciais)
+pandas>=2.1.0
+numpy>=1.25.0
+scikit-learn>=1.3.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# Database
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
+
+# Object Storage
+boto3>=1.28.0
+minio>=7.1.0
+
+# Web Framework
+streamlit>=1.28.0
+
+# API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Development
+jupyter>=1.0.0
+python-dotenv>=1.0.0
