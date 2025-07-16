@@ -69,6 +69,7 @@ class WeatherDataProcessor:
         df = df.rename(columns={'precip_mm': 'precipitation'})
         # Rename column 'last_updated' to 'recorded_at'
         df = df.rename(columns={'last_updated': 'recorded_at'})
+        df = df.rename(columns={'country': 'location'})
         return df
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -118,7 +119,7 @@ class WeatherDataProcessor:
             df['wind_pressure_interaction'] = df['wind_speed'] * df['pressure']
             
             # Criar target (chuva ou não)
-            df['will_rain'] = (df['precipitation'] > 0).astype(int)
+            df['rain_probability'] = (df['precipitation'] > 0).astype(int)
             
             logger.info("Feature engineering concluído")
             return df
@@ -132,7 +133,7 @@ class WeatherDataProcessor:
         try:
             if destination in ['database', 'both']:
                 # Salvar no banco de dados
-                db_connection.insert_dataframe(df, 'weather_data', if_exists='replace')
+                db_connection.insert_dataframe(df, 'weather_data', if_exists='append')
                 logger.info("Dados salvos no banco de dados")
             
             if destination in ['minio', 'both']:

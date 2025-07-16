@@ -57,7 +57,7 @@ class RainPredictor:
             logger.error(f"Erro ao preparar features: {e}")
             raise
     
-    def train_model(self, df: pd.DataFrame, target_column: str = 'will_rain') -> Dict:
+    def train_model(self, df: pd.DataFrame, target_column: str = 'rain_probability') -> Dict:
         """Treina o modelo de previsão"""
         try:
             logger.info("Iniciando treinamento do modelo")

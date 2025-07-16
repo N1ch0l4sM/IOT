@@ -37,8 +37,8 @@ def main():
         logger.info(f"Features criadas: {len(df_processed)} registros")
         
         # Salvar dados processados
-       # processor.save_processed_data(df_processed, destination='both')
-        #logger.info("Dados salvos com sucesso")
+        processor.save_processed_data(df_processed, destination='database')
+        logger.info("Dados salvos com sucesso")
         
         # Etapa 2: Treinamento do modelo
         logger.info("Etapa 2: Treinamento do modelo")
