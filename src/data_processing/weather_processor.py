@@ -7,7 +7,7 @@ import logging
 from typing import Dict, Optional
 from src.utils.database import db_connection
 from src.utils.minio_client import minio_connection
-import kagglehub
+import kagglehub 
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,10 @@ class WeatherDataProcessor:
         try:
             if source == 'kaggle':
                 path = kagglehub.dataset_download("nelgiriyewithana/global-weather-repository")
-                df = self._generate_sample_data()
-                logger.info(f"Dados brutos carregados: {len(df)} registros")
+                df = pd.read_csv(path + '/GlobalWeatherRepository.csv')
+                logger.info(f"Dados carregados do Kaggle: {len(df)} registros")
+                # Limpeza inicial dos dados
+                df = self.clean_data_kaggle(df)
                 return df
             
             elif source == 'minio':
@@ -41,6 +43,33 @@ class WeatherDataProcessor:
         except Exception as e:
             logger.error(f"Erro ao carregar dados: {e}")
             raise
+    
+    def clean_data_kaggle(self, df):
+        # Drop column: 'pressure_in'
+        df = df.drop(columns=['pressure_in'])
+        # Drop column: 'temperature_fahrenheit'
+        df = df.drop(columns=['temperature_fahrenheit'])
+        # Drop column: 'wind_mph'
+        df = df.drop(columns=['wind_mph'])
+        # Drop column: 'precip_in'
+        df = df.drop(columns=['precip_in'])
+        # Drop column: 'feels_like_fahrenheit'
+        df = df.drop(columns=['feels_like_fahrenheit'])
+        # Drop column: 'visibility_miles'
+        df = df.drop(columns=['visibility_miles'])
+        # Drop column: 'gust_mph'
+        df = df.drop(columns=['gust_mph'])
+        # Rename column 'temperature_celsius' to 'temperature'
+        df = df.rename(columns={'temperature_celsius': 'temperature'})
+        # Rename column 'pressure_mb' to 'pressure'
+        df = df.rename(columns={'pressure_mb': 'pressure'})
+        # Rename column 'wind_kph' to 'wind_speed'
+        df = df.rename(columns={'wind_kph': 'wind_speed'})
+        # Rename column 'precip_mm' to 'precipitation'
+        df = df.rename(columns={'precip_mm': 'precipitation'})
+        # Rename column 'last_updated' to 'recorded_at'
+        df = df.rename(columns={'last_updated': 'recorded_at'})
+        return df
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Limpa e valida dados"""
@@ -116,23 +145,6 @@ class WeatherDataProcessor:
         except Exception as e:
             logger.error(f"Erro ao salvar dados: {e}")
             raise
-    
-    def _generate_sample_data(self, n_samples: int = 1000) -> pd.DataFrame:
-        """Gera dados de exemplo para demonstração"""
-        np.random.seed(42)
-        
-        data = {
-            'location': np.random.choice(['São Paulo', 'Rio de Janeiro', 'Belo Horizonte'], n_samples),
-            'temperature': np.random.normal(25, 5, n_samples),
-            'humidity': np.random.normal(65, 15, n_samples),
-            'pressure': np.random.normal(1013, 10, n_samples),
-            'wind_speed': np.random.exponential(8, n_samples),
-            'wind_direction': np.random.choice(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], n_samples),
-            'precipitation': np.random.exponential(0.5, n_samples) * np.random.binomial(1, 0.3, n_samples),
-            'recorded_at': pd.date_range('2023-01-01', periods=n_samples, freq='H')
-        }
-        
-        return pd.DataFrame(data)
     
     def _handle_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
         """Trata valores ausentes"""

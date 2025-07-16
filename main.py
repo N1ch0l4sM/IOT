@@ -37,8 +37,8 @@ def main():
         logger.info(f"Features criadas: {len(df_processed)} registros")
         
         # Salvar dados processados
-        processor.save_processed_data(df_processed, destination='both')
-        logger.info("Dados salvos com sucesso")
+       # processor.save_processed_data(df_processed, destination='both')
+        #logger.info("Dados salvos com sucesso")
         
         # Etapa 2: Treinamento do modelo
         logger.info("Etapa 2: Treinamento do modelo")
@@ -49,8 +49,8 @@ def main():
         logger.info(f"Modelo treinado - AUC: {metrics['auc']:.4f}")
         
         # Salvar modelo
-        predictor.save_model()
-        logger.info("Modelo salvo com sucesso")
+        #predictor.save_model()
+        #logger.info("Modelo salvo com sucesso")
         
         # Etapa 3: Fazer predições
         logger.info("Etapa 3: Fazendo predições")
