@@ -8,18 +8,11 @@ plotly>=5.15.0
 
 # Database
 psycopg2-binary>=2.9.0
-sqlalchemy>=2.0.0
+spark>=4.0.0
 
 # Object Storage
 boto3>=1.28.0
 minio>=7.1.0
-
-# Web Framework
-streamlit>=1.28.0
-
-# API
-fastapi>=0.104.0
-uvicorn>=0.24.0
 
 # Testing
 pytest>=7.4.0

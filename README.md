@@ -9,7 +9,6 @@ Este projeto implementa um pipeline de dados IoT completo para previsão de chuv
 - **Processamento ETL** com Apache Airflow
 - **Armazenamento** em PostgreSQL e MinIO
 - **Machine Learning** com Scikit-learn
-- **Dashboard interativo** com Streamlit
 
 ## 🚀 Stack Tecnológica
 
@@ -17,7 +16,6 @@ Este projeto implementa um pipeline de dados IoT completo para previsão de chuv
 - **Processamento**: Python, Pandas, Apache Airflow
 - **Armazenamento**: PostgreSQL (relacional) + MinIO (Data Lake)
 - **Machine Learning**: Scikit-learn (classificação binária)
-- **Visualização**: Streamlit
 - **Orquestração**: Docker Compose
 
 ## 📁 Estrutura do Projeto
@@ -31,7 +29,6 @@ IOT/
 │   ├── data_processing/    # ETL scripts
 │   ├── ml/                 # Machine Learning
 │   └── utils/              # Utilitários
-├── dashboard/              # Streamlit dashboard
 ├── docker/                 # Configurações Docker
 ├── notebooks/              # Jupyter notebooks
 └── tests/                  # Testes
@@ -98,18 +95,9 @@ python main.py
 make run
 ```
 
-### 7. Acessar dashboards
-```bash
-# Iniciar dashboard Streamlit
-streamlit run dashboard/main.py --server.port=8501
-# Ou usar Makefile
-make dashboard
-```
-
 ## 🌐 Serviços
 
 - **Airflow**: http://localhost:8080
-- **Dashboard**: http://localhost:8501
 - **MinIO**: http://localhost:9001
 - **PostgreSQL**: localhost:5432
 
@@ -125,10 +113,6 @@ make dashboard
 - Treinamento automatizado
 - Avaliação de performance
 
-### Dashboard
-- Visualização em tempo real
-- Previsões interativas
-- Métricas de performance
 
 ## 🔍 Uso
 
@@ -146,9 +130,6 @@ python generate_sample_data.py
 
 # 2. Executar pipeline
 python main.py
-
-# 3. Iniciar dashboard
-streamlit run dashboard/main.py
 ```
 
 ### Produção com Docker
@@ -158,7 +139,6 @@ make setup
 
 # 2. Acessar interfaces
 # - Airflow: http://localhost:8080 (admin/admin)
-# - Dashboard: http://localhost:8501
 # - MinIO: http://localhost:9001 (minioadmin/minioadmin123)
 ```
 
@@ -249,7 +229,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 ## 🙏 Agradecimentos
 
 - [Apache Airflow](https://airflow.apache.org/) - Orquestração de workflows
-- [Streamlit](https://streamlit.io/) - Dashboard interativo
 - [Scikit-learn](https://scikit-learn.org/) - Machine Learning
 - [PostgreSQL](https://www.postgresql.org/) - Banco de dados
 - [MinIO](https://min.io/) - Object Storage

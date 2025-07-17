@@ -12,7 +12,6 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from src.ml.rain_predictor import RainPredictor
-
 class TestRainPredictor(unittest.TestCase):
     """Testes para RainPredictor"""
     
@@ -66,7 +65,7 @@ class TestRainPredictor(unittest.TestCase):
             'hour': np.random.randint(0, 24, n_samples),
             'day_of_week': np.random.randint(0, 7, n_samples),
             'month': np.random.randint(1, 13, n_samples),
-            'will_rain': np.random.binomial(1, 0.3, n_samples)
+            'rain_probability': np.random.binomial(1, 0.3, n_samples)
         })
         
         # Treinar modelo
@@ -98,13 +97,13 @@ class TestRainPredictor(unittest.TestCase):
             'hour': np.random.randint(0, 24, n_samples),
             'day_of_week': np.random.randint(0, 7, n_samples),
             'month': np.random.randint(1, 13, n_samples),
-            'will_rain': np.random.binomial(1, 0.3, n_samples)
+            'rain_probability': np.random.binomial(1, 0.3, n_samples)
         })
         
         self.predictor.train_model(df_train)
         
         # Criar dados para predição
-        df_predict = df_train.head(10).drop('will_rain', axis=1)
+        df_predict = df_train.head(10).drop('rain_probability', axis=1)
         
         # Fazer predições
         predictions, probabilities = self.predictor.predict(df_predict)
@@ -134,7 +133,7 @@ class TestRainPredictor(unittest.TestCase):
             'hour': np.random.randint(0, 24, n_samples),
             'day_of_week': np.random.randint(0, 7, n_samples),
             'month': np.random.randint(1, 13, n_samples),
-            'will_rain': np.random.binomial(1, 0.3, n_samples)
+            'rain_probability': np.random.binomial(1, 0.3, n_samples)
         })
         
         self.predictor.train_model(df)

@@ -24,9 +24,6 @@ docker-down:  ## Para os serviços Docker
 docker-logs:  ## Mostra logs dos serviços Docker
 	docker-compose logs -f
 
-dashboard:  ## Inicia o dashboard Streamlit
-	streamlit run dashboard/main.py --server.port=8501
-
 airflow-init:  ## Inicializa o banco do Airflow
 	docker-compose run --rm airflow-webserver airflow db init
 
@@ -52,10 +49,10 @@ clean:  ## Remove arquivos temporários
 	find . -type f -name "*.log" -delete
 
 format:  ## Formata o código com black
-	black src/ tests/ dashboard/
+	black src/ tests/
 
 lint:  ## Executa linting com flake8
-	flake8 src/ tests/ dashboard/
+	flake8 src/ tests/
 
 jupyter:  ## Inicia Jupyter Lab
 	jupyter lab notebooks/

@@ -38,7 +38,6 @@ docker-compose exec airflow-webserver airflow users create \
 
 ### 4. Acessar aplicações
 - **Airflow**: http://localhost:8080 (admin/admin)
-- **Dashboard**: http://localhost:8501
 - **MinIO**: http://localhost:9001 (minioadmin/minioadmin123)
 
 ### 5. Executar pipeline local (opcional)

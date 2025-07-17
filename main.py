@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.utils.logger import setup_logging
 from src.data_processing.weather_processor import WeatherDataProcessor
-from src.ml.rain_predictor import RainPredictor, retrain_model
+from src.ml.rain_predictor import RainPredictor
 
 def main():
     """Função principal para executar o pipeline"""
@@ -37,7 +37,7 @@ def main():
         logger.info(f"Features criadas: {len(df_processed)} registros")
         
         # Salvar dados processados
-        processor.save_processed_data(df_processed, destination='database')
+        processor.save_processed_data(df_processed, destination='both')
         logger.info("Dados salvos com sucesso")
         
         # Etapa 2: Treinamento do modelo
@@ -49,8 +49,8 @@ def main():
         logger.info(f"Modelo treinado - AUC: {metrics['auc']:.4f}")
         
         # Salvar modelo
-        #predictor.save_model()
-        #logger.info("Modelo salvo com sucesso")
+        predictor.save_model()
+        logger.info("Modelo salvo com sucesso")
         
         # Etapa 3: Fazer predições
         logger.info("Etapa 3: Fazendo predições")

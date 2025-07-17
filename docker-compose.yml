@@ -39,10 +39,30 @@ services:
     networks:
       - weather_network
 
+  airflow-init:
+    build: ./docker/airflow
+    entrypoint: >
+      bash -c "
+        airflow db init &&
+        airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
+      "
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - weather_network
+
   # Airflow Webserver
   airflow-webserver:
     build: ./docker/airflow
+    command: airflow webserver
     environment:
+      - PYTHONPATH=/opt/airflow/src
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
@@ -67,7 +87,9 @@ services:
   # Airflow Scheduler
   airflow-scheduler:
     build: ./docker/airflow
+    command: airflow scheduler
     environment:
+      - PYTHONPATH=/opt/airflow/src
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
@@ -88,7 +110,9 @@ services:
   # Airflow Worker
   airflow-worker:
     build: ./docker/airflow
+    command: airflow celery worker
     environment:
+      - PYTHONPATH=/opt/airflow/src
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
@@ -103,31 +127,6 @@ services:
     depends_on:
       - postgres
       - redis
-    networks:
-      - weather_network
-
-  # Streamlit Dashboard
-  streamlit:
-    build: ./docker/streamlit
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./dashboard:/app/dashboard
-      - ./src:/app/src
-      - ./models:/app/models
-      - ./data:/app/data
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=weather_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres123
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin123
-    depends_on:
-      - postgres
-      - minio
     networks:
       - weather_network
 
