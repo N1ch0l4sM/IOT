@@ -18,7 +18,7 @@ services:
 
   # MinIO Object Storage
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
@@ -36,6 +36,21 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    networks:
+      - weather_network
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo123
+      MONGO_INITDB_DATABASE: weather_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
     networks:
       - weather_network
 
@@ -62,7 +77,7 @@ services:
     build: ./docker/airflow
     command: airflow webserver
     environment:
-      - PYTHONPATH=/opt/airflow/src
+      - PYTHONPATH=/opt/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
@@ -76,6 +91,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ~/.kaggle:/home/airflow/.kaggle:ro
     ports:
       - "8080:8080"
     depends_on:
@@ -89,7 +105,7 @@ services:
     build: ./docker/airflow
     command: airflow scheduler
     environment:
-      - PYTHONPATH=/opt/airflow/src
+      - PYTHONPATH=/opt/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
@@ -101,6 +117,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ~/.kaggle:/home/airflow/.kaggle:ro
     depends_on:
       - postgres
       - redis
@@ -112,7 +129,7 @@ services:
     build: ./docker/airflow
     command: airflow celery worker
     environment:
-      - PYTHONPATH=/opt/airflow/src
+      - PYTHONPATH=/opt/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
@@ -124,6 +141,7 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
+      - ~/.kaggle:/home/airflow/.kaggle:ro
     depends_on:
       - postgres
       - redis
@@ -133,6 +151,7 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  mongo_data:
 
 networks:
   weather_network:

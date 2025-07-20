@@ -6,6 +6,7 @@ USER root
 RUN apt-get update && apt-get install -y \
     gcc \
     python3-dev \
+    openjdk-17-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 USER airflow
@@ -13,3 +14,5 @@ USER airflow
 # Copy requirements and install Python dependencies
 COPY requirements-airflow.txt /requirements-airflow.txt
 RUN pip install --no-cache-dir -r /requirements-airflow.txt
+RUN pip install pyspark
+RUN pip install kaggle

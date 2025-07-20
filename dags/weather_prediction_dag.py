@@ -7,12 +7,14 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 import sys
 import os
+from kaggle.api.kaggle_api_extended import KaggleApi
+import kaggle
 
 # Adicionar src ao path
-sys.path.append('/opt/airflow/src')
+sys.path.append('/opt/airflow')
 
 from src.data_processing.weather_processor import WeatherDataProcessor
-from src.ml.rain_predictor import RainPredictor, retrain_model
+from src.ml.rain_predictor import RainPredictor
 from src.utils.logger import setup_logging
 
 # Configurar logging
@@ -81,26 +83,6 @@ def transform_weather_data(**context):
         
     except Exception as e:
         logger.error(f"Erro na transformação: {e}")
-        raise
-
-def train_ml_model(**context):
-    """Treina modelo de machine learning"""
-    try:
-        # Verificar se é hora de retreinar (a cada 24 horas)
-        execution_date = context['execution_date']
-        if execution_date.hour != 0:
-            logger.info("Pulando treinamento - não é hora de retreinar")
-            return "skipped"
-        
-        # Retreinar modelo
-        retrain_model()
-        
-        logger.info("Modelo treinado com sucesso")
-        
-        return "success"
-        
-    except Exception as e:
-        logger.error(f"Erro no treinamento: {e}")
         raise
 
 def make_predictions(**context):
@@ -208,12 +190,6 @@ quality_check_task = PythonOperator(
     dag=dag,
 )
 
-train_model_task = PythonOperator(
-    task_id='train_ml_model',
-    python_callable=train_ml_model,
-    dag=dag,
-)
-
 predict_task = PythonOperator(
     task_id='make_predictions',
     python_callable=make_predictions,
@@ -221,4 +197,4 @@ predict_task = PythonOperator(
 )
 
 # Definir dependências
-extract_task >> transform_task >> quality_check_task >> [train_model_task, predict_task]
+extract_task >> transform_task >> quality_check_task 

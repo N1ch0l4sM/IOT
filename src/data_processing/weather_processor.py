@@ -7,7 +7,8 @@ import logging
 from typing import Dict, Optional
 from src.utils.database import db_connection
 from src.utils.minio_client import minio_connection
-import kagglehub 
+from kaggle.api.kaggle_api_extended import KaggleApi
+import kaggle
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,10 @@ class WeatherDataProcessor:
         """Carrega dados brutos de diferentes fontes"""
         try:
             if source == 'kaggle':
-                path = kagglehub.dataset_download("nelgiriyewithana/global-weather-repository")
-                df = pd.read_csv(path + '/GlobalWeatherRepository.csv')
+                api = KaggleApi()
+                api.authenticate()
+                api.dataset_download_files('nelgiriyewithana/global-weather-repository', path='/tmp', unzip=True)
+                df = pd.read_csv('/tmp/GlobalWeatherRepository.csv')
                 logger.info(f"Dados carregados do Kaggle: {len(df)} registros")
                 # Limpeza inicial dos dados
                 df = self.clean_data_kaggle(df)
