@@ -130,6 +130,7 @@ data/raw/*.json
 data/raw/*.parquet
 *.pkl
 *.joblib
+src/config.py
 
 # Logs
 logs/*.log
@@ -159,3 +160,4 @@ models/*.h5
 *.temp
 .DS_Store
 Thumbs.db
+src/config.py
