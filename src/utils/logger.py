@@ -4,29 +4,51 @@ Utilitários de logging
 import logging
 import os
 from datetime import datetime
-from src.config import DATA_PATHS
+from pathlib import Path
+import tempfile
 
-def setup_logging(level=logging.INFO):
-    """Configura logging para o projeto"""
+def setup_logging(log_level: str = "INFO") -> logging.Logger:
+    """
+    Configura o sistema de logging do projeto
     
-    # Criar diretório de logs se não existir
-    log_dir = DATA_PATHS['logs']
-    os.makedirs(log_dir, exist_ok=True)
+    Args:
+        log_level: Nível de log (DEBUG, INFO, WARNING, ERROR)
+        
+    Returns:
+        Logger configurado
+    """
+    try:
+        # Tentar usar diretório do projeto
+        log_dir = Path(__file__).parent.parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        log_filepath = log_dir / f"pipeline_{datetime.now().strftime('%Y%m%d')}.log"
+        
+        # Testar se consegue escrever
+        test_file = log_filepath.with_suffix('.test')
+        test_file.touch()
+        test_file.unlink()
+        
+    except (PermissionError, OSError):
+        # Fallback para diretório temporário
+        log_dir = Path(tempfile.gettempdir()) / "iot_pipeline_logs"
+        log_dir.mkdir(exist_ok=True)
+        log_filepath = log_dir / f"pipeline_{datetime.now().strftime('%Y%m%d')}.log"
+        print(f"Aviso: Usando diretório temporário para logs: {log_dir}")
     
-    # Nome do arquivo de log com timestamp
-    log_file = os.path.join(log_dir, f"pipeline_{datetime.now().strftime('%Y%m%d')}.log")
+    # Configurar formato do log
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
     # Configurar logging
     logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=getattr(logging, log_level.upper()),
+        format=log_format,
         handlers=[
-            logging.FileHandler(log_file),
+            logging.FileHandler(log_filepath, mode='a', encoding='utf-8'),
             logging.StreamHandler()
         ]
     )
     
-    logger = logging.getLogger(__name__)
-    logger.info("Logging configurado")
+    logger = logging.getLogger("IOT_Pipeline")
+    logger.info(f"Sistema de logging configurado - Arquivo: {log_filepath}")
     
     return logger
