@@ -18,26 +18,50 @@ class WeatherDataProcessor:
     def __init__(self):
         self.required_columns = [
             'temperature', 'humidity', 'pressure', 'wind_speed', 
-            'wind_direction', 'precipitation'
+            'clouds', 'precipitatioon'
         ]
     
-    def load_raw_data(self, source: str = 'kaggle') -> pd.DataFrame:
-        """Carrega dados brutos de diferentes fontes"""
+    # def load_raw_data(self, source: str = 'kaggle') -> pd.DataFrame:
+    #     """Carrega dados brutos de diferentes fontes"""
+    #     try:
+    #         if source == 'kaggle':
+    #             api = KaggleApi()
+    #             api.authenticate()
+    #             api.dataset_download_files('nelgiriyewithana/global-weather-repository', path='/tmp', unzip=True)
+    #             df = pd.read_csv('/tmp/GlobalWeatherRepository.csv')
+    #             logger.info(f"Dados carregados do Kaggle: {len(df)} registros")
+    #             # Limpeza inicial dos dados
+    #             df = self.clean_data_kaggle(df)
+    #             return df
+            
+    #         elif source == 'minio':
+    #             # Carregar dados do MinIO
+    #             df = minio_connection.download_dataframe('raw/weather_data.csv')
+    #             logger.info(f"Dados carregados do MinIO: {len(df)} registros")
+    #             return df
+            
+    #         else:
+    #             raise ValueError(f"Fonte de dados '{source}' não suportada")
+                
+    #     except Exception as e:
+    #         logger.error(f"Erro ao carregar dados: {e}")
+    #         raise
+
+    def load_processed_data(self, source: str = 'iot_weather_db') -> pd.DataFrame:
+        """Carrega dados de diferentes bancos de dados"""
         try:
-            if source == 'kaggle':
-                api = KaggleApi()
-                api.authenticate()
-                api.dataset_download_files('nelgiriyewithana/global-weather-repository', path='/tmp', unzip=True)
-                df = pd.read_csv('/tmp/GlobalWeatherRepository.csv')
-                logger.info(f"Dados carregados do Kaggle: {len(df)} registros")
-                # Limpeza inicial dos dados
-                df = self.clean_data_kaggle(df)
+            if source == 'iot_weather_db':
+                # Carregar dados do banco de dados weather_iot
+                query = "SELECT * FROM weather_hour"
+                df = db_connection.execute_query(query, 'iot_weather_db')
+                logger.info(f"Dados carregados do banco de dados: {len(df)} registros")
                 return df
             
-            elif source == 'minio':
-                # Carregar dados do MinIO
-                df = minio_connection.download_dataframe('raw/weather_data.csv')
-                logger.info(f"Dados carregados do MinIO: {len(df)} registros")
+            elif source == 'weather_db':
+                # Carregar dados do banco de dados weather_db
+                query = "SELECT * FROM weather_data"
+                df = db_connection.execute_query(query, 'weather_db')
+                logger.info(f"Dados carregados do banco de dados: {len(df)} registros")
                 return df
             
             else:
@@ -47,33 +71,33 @@ class WeatherDataProcessor:
             logger.error(f"Erro ao carregar dados: {e}")
             raise
     
-    def clean_data_kaggle(self, df):
-        # Drop column: 'pressure_in'
-        df = df.drop(columns=['pressure_in'])
-        # Drop column: 'temperature_fahrenheit'
-        df = df.drop(columns=['temperature_fahrenheit'])
-        # Drop column: 'wind_mph'
-        df = df.drop(columns=['wind_mph'])
-        # Drop column: 'precip_in'
-        df = df.drop(columns=['precip_in'])
-        # Drop column: 'feels_like_fahrenheit'
-        df = df.drop(columns=['feels_like_fahrenheit'])
-        # Drop column: 'visibility_miles'
-        df = df.drop(columns=['visibility_miles'])
-        # Drop column: 'gust_mph'
-        df = df.drop(columns=['gust_mph'])
-        # Rename column 'temperature_celsius' to 'temperature'
-        df = df.rename(columns={'temperature_celsius': 'temperature'})
-        # Rename column 'pressure_mb' to 'pressure'
-        df = df.rename(columns={'pressure_mb': 'pressure'})
-        # Rename column 'wind_kph' to 'wind_speed'
-        df = df.rename(columns={'wind_kph': 'wind_speed'})
-        # Rename column 'precip_mm' to 'precipitation'
-        df = df.rename(columns={'precip_mm': 'precipitation'})
-        # Rename column 'last_updated' to 'recorded_at'
-        df = df.rename(columns={'last_updated': 'recorded_at'})
-        df = df.rename(columns={'country': 'location'})
-        return df
+    # def clean_data_kaggle(self, df):
+    #     # Drop column: 'pressure_in'
+    #     df = df.drop(columns=['pressure_in'])
+    #     # Drop column: 'temperature_fahrenheit'
+    #     df = df.drop(columns=['temperature_fahrenheit'])
+    #     # Drop column: 'wind_mph'
+    #     df = df.drop(columns=['wind_mph'])
+    #     # Drop column: 'precip_in'
+    #     df = df.drop(columns=['precip_in'])
+    #     # Drop column: 'feels_like_fahrenheit'
+    #     df = df.drop(columns=['feels_like_fahrenheit'])
+    #     # Drop column: 'visibility_miles'
+    #     df = df.drop(columns=['visibility_miles'])
+    #     # Drop column: 'gust_mph'
+    #     df = df.drop(columns=['gust_mph'])
+    #     # Rename column 'temperature_celsius' to 'temperature'
+    #     df = df.rename(columns={'temperature_celsius': 'temp'})
+    #     # Rename column 'pressure_mb' to 'pressure'
+    #     df = df.rename(columns={'pressure_mb': 'pressure'})
+    #     # Rename column 'wind_kph' to 'wind_speed'
+    #     df = df.rename(columns={'wind_kph': 'wind_speed'})
+    #     # Rename column 'precip_mm' to 'precipitation'
+    #     df = df.rename(columns={'precip_mm': 'rain'})
+    #     # Rename column 'last_updated' to 'recorded_at'
+    #     df = df.rename(columns={'last_updated': 'date'})
+    #     df = df.rename(columns={'country': 'location'})
+    #     return df
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Limpa e valida dados"""
@@ -104,16 +128,18 @@ class WeatherDataProcessor:
         try:
             logger.info("Iniciando feature engineering")
             
+            # Garantir que a coluna 'date' está em datetime
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
             # Criar features temporais
-            if 'recorded_at' in df.columns:
-                df['recorded_at'] = pd.to_datetime(df['recorded_at'])
-                df['hour'] = df['recorded_at'].dt.hour
-                df['day_of_week'] = df['recorded_at'].dt.dayofweek
-                df['month'] = df['recorded_at'].dt.month
-                df['season'] = df['month'].apply(self._get_season)
+            if 'hour' not in df.columns:
+                df['hour'] = df['date'].dt.hour
+            df['day_of_week'] = df['date'].dt.dayofweek
+            df['month'] = df['date'].dt.month
+            df['season'] = df['month'].apply(self._get_season)
             
-            # Criar features meteorológicas
-            df['feels_like'] = self._calculate_feels_like(df['temperature'], df['humidity'])
+            # # Criar features meteorológicas
+            # if 'feelslike' not in df.columns:
+            #     df['feelslike'] = self._calculate_feels_like(df['temperature'], df['humidity'])
             df['dew_point'] = self._calculate_dew_point(df['temperature'], df['humidity'])
             df['pressure_tendency'] = df['pressure'].diff().fillna(0)
             
@@ -122,7 +148,7 @@ class WeatherDataProcessor:
             df['wind_pressure_interaction'] = df['wind_speed'] * df['pressure']
             
             # Criar target (chuva ou não)
-            df['rain_probability'] = (df['precipitation'] > 0).astype(int)
+            df['rain_flag'] = (df['precipitation'] > 0).astype(int)
             
             logger.info("Feature engineering concluído")
             return df
@@ -131,24 +157,24 @@ class WeatherDataProcessor:
             logger.error(f"Erro no feature engineering: {e}")
             raise
     
-    def save_processed_data(self, df: pd.DataFrame, destination: str = 'both'):
-        """Salva dados processados"""
-        try:
-            if destination in ['database', 'both']:
-                # Salvar no banco de dados
-                db_connection.insert_dataframe(df, 'weather_data', if_exists='append')
-                logger.info("Dados salvos no banco de dados")
+    # def save_processed_data(self, df: pd.DataFrame, destination: str = 'both'):
+    #     """Salva dados processados"""
+    #     try:
+    #         if destination in ['database', 'both']:
+    #             # Salvar no banco de dados
+    #             db_connection.insert_dataframe(df, 'weather_data', if_exists='append')
+    #             logger.info("Dados salvos no banco de dados")
             
-            if destination in ['minio', 'both']:
-                # Salvar no MinIO
-                minio_connection.upload_dataframe(
-                    df, 'processed/weather_data_processed.csv', format='csv'
-                )
-                logger.info("Dados salvos no MinIO")
+    #         if destination in ['minio', 'both']:
+    #             # Salvar no MinIO
+    #             minio_connection.upload_dataframe(
+    #                 df, 'processed/weather_data_processed.csv', format='csv'
+    #             )
+    #             logger.info("Dados salvos no MinIO")
                 
-        except Exception as e:
-            logger.error(f"Erro ao salvar dados: {e}")
-            raise
+    #     except Exception as e:
+    #         logger.error(f"Erro ao salvar dados: {e}")
+    #         raise
     
     def _handle_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
         """Trata valores ausentes"""

@@ -24,9 +24,13 @@ def main():
         logger.info("Etapa 1: Processamento de dados")
         processor = WeatherDataProcessor()
         
+        # # Carregar dados brutos
+        # df_raw = processor.load_raw_data(source='kaggle')
+        # logger.info(f"Dados brutos carregados: {len(df_raw)} registros")
+
         # Carregar dados brutos
-        df_raw = processor.load_raw_data(source='kaggle')
-        logger.info(f"Dados brutos carregados: {len(df_raw)} registros")
+        df_raw = processor.load_processed_data(source='iot_weather_db')
+        logger.info(f"Dados processados carregados: {len(df_raw)} registros")
         
         # Limpar dados
         df_clean = processor.clean_data(df_raw)
@@ -36,45 +40,45 @@ def main():
         df_processed = processor.feature_engineering(df_clean)
         logger.info(f"Features criadas: {len(df_processed)} registros")
         
-        # Salvar dados processados
-        processor.save_processed_data(df_processed, destination='both')
-        logger.info("Dados salvos com sucesso")
+        # # Salvar dados processados
+        # processor.save_processed_data(df_processed, destination='both')
+        # logger.info("Dados salvos com sucesso")
         
-        # Etapa 2: Treinamento do modelo
-        logger.info("Etapa 2: Treinamento do modelo")
-        predictor = RainPredictor()
+        # # Etapa 2: Treinamento do modelo
+        # logger.info("Etapa 2: Treinamento do modelo")
+        # predictor = RainPredictor()
         
-        # Treinar modelo
-        metrics = predictor.train_model(df_processed)
-        logger.info(f"Modelo treinado - AUC: {metrics['auc']:.4f}")
+        # # Treinar modelo
+        # metrics = predictor.train_model(df_processed)
+        # logger.info(f"Modelo treinado - AUC: {metrics['auc']:.4f}")
         
-        # Salvar modelo
-        predictor.save_model()
-        logger.info("Modelo salvo com sucesso")
+        # # Salvar modelo
+        # predictor.save_model()
+        # logger.info("Modelo salvo com sucesso")
         
-        # Etapa 3: Fazer predições
-        logger.info("Etapa 3: Fazendo predições")
+        # # Etapa 3: Fazer predições
+        # logger.info("Etapa 3: Fazendo predições")
         
-        # Usar dados recentes para predição
-        recent_data = df_processed.tail(100)
-        predictions, probabilities = predictor.predict(recent_data)
+        # # Usar dados recentes para predição
+        # recent_data = df_processed.tail(100)
+        # predictions, probabilities = predictor.predict(recent_data)
         
-        rain_predictions = sum(predictions)
-        logger.info(f"Predições feitas: {rain_predictions}/{len(predictions)} previsões de chuva")
+        # rain_predictions = sum(predictions)
+        # logger.info(f"Predições feitas: {rain_predictions}/{len(predictions)} previsões de chuva")
         
-        # Relatório final
-        logger.info("="*50)
-        logger.info("RELATÓRIO FINAL")
-        logger.info("="*50)
-        logger.info(f"Registros processados: {len(df_processed)}")
-        logger.info(f"AUC do modelo: {metrics['auc']:.4f}")
-        logger.info(f"Precisão: {metrics['precision']:.4f}")
-        logger.info(f"Recall: {metrics['recall']:.4f}")
-        logger.info(f"F1-Score: {metrics['f1_score']:.4f}")
-        logger.info(f"Predições de chuva: {rain_predictions}/{len(predictions)}")
-        logger.info("="*50)
+        # # Relatório final
+        # logger.info("="*50)
+        # logger.info("RELATÓRIO FINAL")
+        # logger.info("="*50)
+        # logger.info(f"Registros processados: {len(df_processed)}")
+        # logger.info(f"AUC do modelo: {metrics['auc']:.4f}")
+        # logger.info(f"Precisão: {metrics['precision']:.4f}")
+        # logger.info(f"Recall: {metrics['recall']:.4f}")
+        # logger.info(f"F1-Score: {metrics['f1_score']:.4f}")
+        # logger.info(f"Predições de chuva: {rain_predictions}/{len(predictions)}")
+        # logger.info("="*50)
         
-        logger.info("Pipeline executado com sucesso!")
+        # logger.info("Pipeline executado com sucesso!")
         
     except Exception as e:
         logger.error(f"Erro na execução do pipeline: {e}")

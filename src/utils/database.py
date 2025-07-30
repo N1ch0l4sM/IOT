@@ -6,7 +6,7 @@ from typing import Optional
 import pandas as pd
 from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 from pyspark.sql.utils import AnalysisException
-from src.config import DB_CONFIG
+from src.config import PG1_CONFIG, PG2_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -31,19 +31,29 @@ class DatabaseConnection:
             logger.error(f"Erro ao iniciar SparkSession: {e}")
             raise
     
-    def execute_query(self, query: str, params: Optional[dict] = None) -> pd.DataFrame:
+    def execute_query(self, query: str, db: str, params: Optional[dict] = None) -> pd.DataFrame:
         """
         Executa query SQL no banco de dados Postgres via Spark e retorna DataFrame Pandas.
         """
         try:
-            jdbc_url = (
-                f"jdbc:postgresql://{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
-            )
-            properties = {
-                "user": DB_CONFIG['user'],
-                "password": DB_CONFIG['password'],
-                "driver": "org.postgresql.Driver"
-            }
+            if db == 'iot_weather_db':
+                jdbc_url = (
+                    f"jdbc:postgresql://{PG2_CONFIG['host']}:{PG2_CONFIG['port']}/{PG2_CONFIG['database']}"
+                )
+                properties = {
+                    "user": PG2_CONFIG['user'],
+                    "password": PG2_CONFIG['password'],
+                    "driver": "org.postgresql.Driver"
+                }
+            elif db == 'weather_db':
+                jdbc_url = (
+                    f"jdbc:postgresql://{PG1_CONFIG['host']}:{PG1_CONFIG['port']}/{PG1_CONFIG['database']}"
+                )
+                properties = {
+                    "user": PG1_CONFIG['user'],
+                    "password": PG1_CONFIG['password'],
+                    "driver": "org.postgresql.Driver"
+                }
             # Substituição simples de parâmetros (atenção: use apenas para queries seguras)
             if params:
                 for k, v in params.items():

@@ -35,7 +35,7 @@ class RainPredictor:
             # Selecionar features relevantes
             feature_columns = [
                 'temperature', 'humidity', 'pressure', 'wind_speed',
-                'feels_like', 'dew_point', 'pressure_tendency',
+                'feelslike', 'dew_point', 'pressure_tendency',
                 'temp_humidity_interaction', 'wind_pressure_interaction',
                 'hour', 'day_of_week', 'month'
             ]
@@ -57,7 +57,7 @@ class RainPredictor:
             logger.error(f"Erro ao preparar features: {e}")
             raise
     
-    def train_model(self, df: pd.DataFrame, target_column: str = 'rain_probability') -> Dict:
+    def train_model(self, df: pd.DataFrame, target_column: str = 'rain_flag') -> Dict:
         """Treina o modelo de previsão"""
         try:
             logger.info("Iniciando treinamento do modelo")

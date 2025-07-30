@@ -13,6 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./docker/backup.sql:/docker-entrypoint-backup.d/backup.sql
     networks:
       - weather_network
 
