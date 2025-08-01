@@ -1,0 +1,72 @@
+# Dependências principais do pipeline IoT
+# Web scraping e APIs
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Processamento de dados
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+statsmodels>=0.14.0
+
+# Banco de dados
+psycopg2-binary>=2.9.0
+pymongo>=4.5.0
+SQLAlchemy>=2.0.0
+
+# Apache Spark
+pyspark>=3.4.0
+
+# MinIO para armazenamento de objetos
+minio>=7.1.0
+
+# Apache Airflow para orquestração
+apache-airflow>=2.7.0
+apache-airflow-providers-postgres>=5.6.0
+apache-airflow-providers-mongo>=3.2.0
+
+# Visualização e dashboard
+streamlit>=1.28.0
+plotly>=5.17.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Configuração e ambiente
+python-dotenv>=1.0.0
+pydantic>=2.4.0
+
+# Logging e monitoramento
+structlog>=23.1.0
+
+# Testes
+pytest>=7.4.0
+pytest-mock>=3.11.0
+pytest-cov>=4.1.0
+
+# Notebooks
+jupyter>=1.0.0
+ipykernel>=6.25.0
+
+# Utilitários
+click>=8.1.0
+tqdm>=4.66.0
+python-dateutil>=2.8.0
+
+# Serialização
+joblib>=1.3.0
+pickle5>=0.0.12
+
+# Validação de dados
+cerberus>=1.3.0
+
+# Cache
+redis>=5.0.0
+
+# HTTP
+fastapi>=0.103.0
+uvicorn>=0.23.0
+
+# Timezone
+pytz>=2023.3

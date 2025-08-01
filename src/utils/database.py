@@ -7,6 +7,7 @@ import pandas as pd
 from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 from pyspark.sql.utils import AnalysisException
 from src.config import PG1_CONFIG, PG2_CONFIG
+import psycopg2
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ class DatabaseConnection:
         except Exception as e:
             logger.error(f"Erro ao executar query via Spark: {e}")
             raise
+
     
     def insert_dataframe(self, df: pd.DataFrame, table_name: str, if_exists: str = 'append'):
         """
@@ -97,7 +99,7 @@ class DatabaseConnection:
             })
             spark_df = self.spark.createDataFrame(df)
             jdbc_url = (
-                f"jdbc:postgresql://{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+                f"jdbc:postgresql://{PG1_CONFIG['host']}:{PG1_CONFIG['port']}/{PG1_CONFIG['database']}"
             )
             mode = 'append' if if_exists == 'append' else 'overwrite'
             spark_df.write.jdbc(
@@ -105,8 +107,8 @@ class DatabaseConnection:
                 table=table_name,
                 mode=mode,
                 properties={
-                    "user": DB_CONFIG['user'],
-                    "password": DB_CONFIG['password'],
+                    "user": PG1_CONFIG['user'],
+                    "password": PG1_CONFIG['password'],
                     "driver": "org.postgresql.Driver"
                 }
             )

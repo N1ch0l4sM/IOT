@@ -1,9 +1,10 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL para dados estruturados
   postgres:
     image: postgres:15
+    container_name: iot_postgres
     environment:
       POSTGRES_DB: weather_db
       POSTGRES_USER: postgres
@@ -13,13 +14,31 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-      - ./docker/backup.sql:/docker-entrypoint-backup.d/backup.sql
     networks:
-      - weather_network
+      - iot_network
+    restart: unless-stopped
 
-  # MinIO Object Storage
+  # MongoDB para dados não estruturados (JSON da API)
+  mongodb:
+    image: mongo:7
+    container_name: iot_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: mongo_iot_weather
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - iot_network
+    restart: unless-stopped
+
+  # MinIO para armazenamento de objetos
   minio:
-    image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
+    image: minio/minio:latest
+    container_name: iot_minio
+    command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
@@ -28,88 +47,85 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
-    command: server /data --console-address ":9001"
     networks:
-      - weather_network
+      - iot_network
+    restart: unless-stopped
 
-  # Redis for Airflow
+  # Redis para cache
   redis:
     image: redis:7-alpine
+    container_name: iot_redis
     ports:
       - "6379:6379"
-    networks:
-      - weather_network
-
-  # MongoDB Database
-  mongodb:
-    image: mongo:6
-    container_name: mongodb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: mongo
-      MONGO_INITDB_ROOT_PASSWORD: mongo123
-      MONGO_INITDB_DATABASE: weather_mongo
-    ports:
-      - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - redis_data:/data
     networks:
-      - weather_network
+      - iot_network
+    restart: unless-stopped
 
-  airflow-init:
-    build: ./docker/airflow
-    entrypoint: >
-      bash -c "
-        airflow db init &&
-        airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
-      "
+  # Apache Airflow - Database
+  airflow-db:
+    image: postgres:15
+    container_name: iot_airflow_db
     environment:
-      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
-      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
-      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
-    depends_on:
-      - postgres
-      - redis
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow123
+      POSTGRES_DB: airflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
     networks:
-      - weather_network
+      - iot_network
+    restart: unless-stopped
 
   # Airflow Webserver
   airflow-webserver:
     build: ./docker/airflow
+    container_name: iot_airflow_webserver
     command: airflow webserver
     environment:
       - PYTHONPATH=/opt/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
-      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@airflow-db:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow123@airflow-db:5432/airflow
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
       - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=true
+      - AIRFLOW__WEBSERVER__DEFAULT_USER_USERNAME=admin
+      - AIRFLOW__WEBSERVER__DEFAULT_USER_PASSWORD=admin123
+      - AIRFLOW__WEBSERVER__DEFAULT_USER_FIRSTNAME=Admin
+      - AIRFLOW__WEBSERVER__DEFAULT_USER_LASTNAME=User
+      - AIRFLOW__WEBSERVER__DEFAULT_USER_EMAIL=admin@iot.com
+      - AIRFLOW__WEBSERVER__DEFAULT_USER_ROLE=Admin
+      - _AIRFLOW_DB_UPGRADE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
-      - ~/.kaggle:/home/airflow/.kaggle:ro
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      - airflow-db
       - redis
     networks:
-      - weather_network
+      - iot_network
+    restart: unless-stopped
 
   # Airflow Scheduler
   airflow-scheduler:
     build: ./docker/airflow
+    container_name: iot_airflow_scheduler
     command: airflow scheduler
     environment:
       - PYTHONPATH=/opt/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
-      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@airflow-db:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow123@airflow-db:5432/airflow
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
@@ -118,22 +134,23 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
-      - ~/.kaggle:/home/airflow/.kaggle:ro
     depends_on:
-      - postgres
+      - airflow-db
       - redis
     networks:
-      - weather_network
+      - iot_network
+    restart: unless-stopped
 
   # Airflow Worker
   airflow-worker:
     build: ./docker/airflow
+    container_name: iot_airflow_worker
     command: airflow celery worker
     environment:
       - PYTHONPATH=/opt/airflow
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://postgres:postgres123@postgres:5432/weather_db
-      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://postgres:postgres123@postgres:5432/weather_db
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@airflow-db:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow123@airflow-db:5432/airflow
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
@@ -142,18 +159,20 @@ services:
       - ./logs:/opt/airflow/logs
       - ./plugins:/opt/airflow/plugins
       - ./src:/opt/airflow/src
-      - ~/.kaggle:/home/airflow/.kaggle:ro
     depends_on:
-      - postgres
+      - airflow-db
       - redis
     networks:
-      - weather_network
+      - iot_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  mongodb_data:
   minio_data:
-  mongo_data:
+  redis_data:
+  airflow_db_data:
 
 networks:
-  weather_network:
+  iot_network:
     driver: bridge

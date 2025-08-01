@@ -1,58 +1,155 @@
-# Makefile para facilitar comandos do projeto
+# Makefile para Pipeline IoT
+.PHONY: help init install setup-env start stop restart logs clean test run-pipeline
 
-.PHONY: help install test run docker-up docker-down dashboard clean
+# Configurações
+DOCKER_COMPOSE_FILE = docker-compose.yml
+PYTHON_ENV = venv
+REQUIREMENTS_FILE = requirements-pipeline.txt
 
-help:  ## Mostra esta mensagem de ajuda
-	@echo "Comandos disponíveis:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+help: ## Mostra esta ajuda
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install:  ## Instala as dependências do projeto
-	pip install -r requirements.txt
+init: ## Inicializa projeto criando diretórios necessários
+	@echo "🔧 Inicializando Pipeline IoT..."
+	@mkdir -p logs plugins data/raw data/processed artifacts models
+	@chmod 755 logs plugins dags src 2>/dev/null || echo "⚠️  Permissões não alteradas (isso é normal em alguns sistemas)"
+	@echo "✅ Inicialização concluída!"
 
-test:  ## Executa os testes
-	python -m pytest tests/ -v --cov=src
+install: ## Instala dependências Python
+	@echo "Instalando dependências..."
+	pip install -r $(REQUIREMENTS_FILE)
+	@echo "Dependências instaladas com sucesso!"
 
-run:  ## Executa o pipeline principal
+setup-env: ## Configura ambiente virtual Python
+	@echo "Criando ambiente virtual..."
+	python -m venv $(PYTHON_ENV)
+	@echo "Ativando ambiente virtual e instalando dependências..."
+	$(PYTHON_ENV)/bin/pip install --upgrade pip
+	$(PYTHON_ENV)/bin/pip install -r $(REQUIREMENTS_FILE)
+	@echo "Ambiente configurado! Ative com: source $(PYTHON_ENV)/bin/activate"
+
+start: ## Inicia todos os serviços Docker
+	@echo "Iniciando serviços Docker..."
+	./start-iot.sh
+
+stop: ## Para todos os serviços Docker
+	@echo "Parando serviços Docker..."
+	./stop-iot.sh
+
+start-basic: ## Inicia apenas serviços básicos (sem Airflow)
+	@echo "Iniciando serviços básicos..."
+	docker-compose up -d postgres mongodb minio redis
+	@echo "Serviços básicos iniciados!"
+	@echo "PostgreSQL: localhost:5432"
+	@echo "MongoDB: localhost:27017"
+	@echo "MinIO: localhost:9000 (UI: localhost:9001)"
+	@echo "Redis: localhost:6379"
+
+restart: stop start ## Reinicia todos os serviços
+
+logs: ## Mostra logs dos serviços
+	docker-compose -f $(DOCKER_COMPOSE_FILE) logs -f
+
+logs-postgres: ## Mostra logs do PostgreSQL
+	docker-compose -f $(DOCKER_COMPOSE_FILE) logs -f postgres
+
+logs-mongodb: ## Mostra logs do MongoDB
+	docker-compose -f $(DOCKER_COMPOSE_FILE) logs -f mongodb
+
+logs-minio: ## Mostra logs do MinIO
+	docker-compose -f $(DOCKER_COMPOSE_FILE) logs -f minio
+
+status: ## Mostra status dos serviços
+	docker-compose -f $(DOCKER_COMPOSE_FILE) ps
+
+clean: ## Remove containers, volumes e images
+	@echo "Limpando ambiente Docker..."
+	docker-compose -f $(DOCKER_COMPOSE_FILE) down -v --remove-orphans
+	docker system prune -f
+	@echo "Ambiente limpo!"
+
+clean-logs: ## Remove arquivos de log
+	@echo "Removendo logs..."
+	rm -rf logs/*.log
+	@echo "Logs removidos!"
+
+setup-db: ## Configura banco de dados inicial
+	@echo "Configurando banco de dados..."
+	docker-compose -f $(DOCKER_COMPOSE_FILE) exec postgres psql -U postgres -d iot_weather_db -c "SELECT version();"
+	@echo "Banco de dados configurado!"
+
+run-pipeline: ## Executa pipeline IoT localmente
+	@echo "Executando pipeline IoT..."
 	python main.py
+	@echo "Pipeline executado!"
 
-docker-up:  ## Sobe os serviços Docker
-	docker-compose up -d
+run-fetch: ## Executa apenas coleta de dados
+	@echo "Executando coleta de dados..."
+	python -m src.weather_fetch
+	@echo "Coleta executada!"
 
-docker-down:  ## Para os serviços Docker
-	docker-compose down
+run-aggregate: ## Executa apenas agregação horária
+	@echo "Executando agregação horária..."
+	python -m src.weather_hour
+	@echo "Agregação executada!"
 
-docker-logs:  ## Mostra logs dos serviços Docker
-	docker-compose logs -f
+test: ## Executa testes
+	@echo "Executando testes..."
+	pytest tests/ -v --cov=src --cov-report=html
+	@echo "Testes executados!"
 
-airflow-init:  ## Inicializa o banco do Airflow
-	docker-compose run --rm airflow-webserver airflow db init
+test-unit: ## Executa apenas testes unitários
+	@echo "Executando testes unitários..."
+	pytest tests/test_*.py -v
+	@echo "Testes unitários executados!"
 
-airflow-user:  ## Cria usuário admin do Airflow
-	docker-compose run --rm airflow-webserver airflow users create \
-		--username admin \
-		--firstname Admin \
-		--lastname User \
-		--role Admin \
-		--email admin@example.com \
-		--password admin
+lint: ## Executa verificação de código
+	@echo "Verificando código..."
+	flake8 src/ --max-line-length=100
+	black --check src/
+	@echo "Verificação concluída!"
 
-setup:  ## Setup inicial completo
-	make install
-	make docker-up
-	sleep 30
-	make airflow-init
-	make airflow-user
+format: ## Formata código Python
+	@echo "Formatando código..."
+	black src/
+	isort src/
+	@echo "Código formatado!"
 
-clean:  ## Remove arquivos temporários
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -type f -name "*.log" -delete
+backup-db: ## Faz backup do banco de dados
+	@echo "Fazendo backup do banco..."
+	docker-compose -f $(DOCKER_COMPOSE_FILE) exec postgres pg_dump -U postgres iot_weather_db > backup_$(shell date +%Y%m%d_%H%M%S).sql
+	@echo "Backup criado!"
 
-format:  ## Formata o código com black
-	black src/ tests/
+monitor: ## Mostra monitoramento dos recursos
+	@echo "Monitoramento de recursos:"
+	docker stats --no-stream
 
-lint:  ## Executa linting com flake8
-	flake8 src/ tests/
+build: ## Reconstrói images Docker
+	@echo "Reconstruindo images..."
+	docker-compose -f $(DOCKER_COMPOSE_FILE) build --no-cache
+	@echo "Images reconstruídas!"
 
-jupyter:  ## Inicia Jupyter Lab
-	jupyter lab notebooks/
+shell-postgres: ## Acessa shell do PostgreSQL
+	docker-compose -f $(DOCKER_COMPOSE_FILE) exec postgres psql -U postgres -d iot_weather_db
+
+shell-mongodb: ## Acessa shell do MongoDB
+	docker-compose -f $(DOCKER_COMPOSE_FILE) exec mongodb mongo mongo_iot_weather -u admin -p admin123
+
+notebook: ## Inicia Jupyter Notebook
+	@echo "Iniciando Jupyter Notebook..."
+	jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+
+requirements: ## Atualiza arquivo de requirements
+	@echo "Atualizando requirements..."
+	pip freeze > requirements-current.txt
+	@echo "Requirements atualizados em requirements-current.txt"
+
+# Comandos para desenvolvimento
+dev-setup: setup-env start ## Configuração completa para desenvolvimento
+	@echo "Ambiente de desenvolvimento configurado!"
+	@echo "Próximos passos:"
+	@echo "1. source $(PYTHON_ENV)/bin/activate"
+	@echo "2. make run-pipeline"
+
+dev-reset: clean setup-env start ## Reset completo do ambiente
+	@echo "Ambiente resetado!"

@@ -1,12 +1,9 @@
 -- Initialize Weather Database
 -- The database weather_db is created via environment variable in docker-compose.yml
-
-use weather_db;
-
 -- Create Country Table --ok
 CREATE TABLE country (
     IdCountry SERIAL PRIMARY KEY,
-    CountryName VARCHAR(100) NOT NULL
+    CountryName VARCHAR(100) NOT NULL UNIQUE
 );
 
 -- Create City Table --ok
@@ -15,7 +12,8 @@ CREATE TABLE city (
     CityName VARCHAR(100) NOT NULL,
     IdCountry INTEGER REFERENCES Country(IdCountry) ON DELETE CASCADE,
     Lon FLOAT NOT NULL,
-    Lat FLOAT NOT NULL
+    Lat FLOAT NOT NULL,
+    UNIQUE (CityName, IdCountry)
 );
 
 -- Create tables for weather data
