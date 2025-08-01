@@ -161,3 +161,5 @@ models/*.h5
 .DS_Store
 Thumbs.db
 src/config.py
+
+src/backup/*
